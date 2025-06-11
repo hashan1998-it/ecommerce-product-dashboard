@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-const Header = ({ productCount = 0 }) => {
+const Header = ({ productCount = 0, loading = false }) => {
   return (
     <header className="header">
       <div className="container">
@@ -12,7 +12,9 @@ const Header = ({ productCount = 0 }) => {
           </div>
           <div className="header-stats">
             <div className="stat-item">
-              <span className="stat-number">{productCount}</span>
+              <span className={`stat-number ${loading ? 'loading' : ''}`}>
+                {loading ? '...' : productCount}
+              </span>
               <span className="stat-label">
                 {productCount === 1 ? 'Product' : 'Products'}
               </span>

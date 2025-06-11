@@ -278,3 +278,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+.app-content {
+  min-height: calc(100vh - 200px);
+  padding: 0;
+}
+
+/* Responsive adjustments for app */
+@media (max-width: 768px) {
+  .app-content {
+    min-height: calc(100vh - 150px);
+  }
+}
