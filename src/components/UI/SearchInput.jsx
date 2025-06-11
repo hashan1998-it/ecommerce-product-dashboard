@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useDebounce } from '../../hooks';
 import './SearchInput.css';
@@ -17,13 +17,14 @@ const SearchInput = ({
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const debouncedValue = useDebounce(inputValue, debounceDelay);
+  const inputRef = useRef(null);
 
-  // Update parent when debounced value changes
+  // Update parent when debounced value changes, but not when clearing
   useEffect(() => {
-    if (onChange && debouncedValue !== value) {
+    if (onChange) {
       onChange(debouncedValue);
     }
-  }, [debouncedValue, onChange, value]);
+  }, [debouncedValue, onChange]);
 
   // Sync with external value changes
   useEffect(() => {
@@ -34,21 +35,23 @@ const SearchInput = ({
     setInputValue(e.target.value);
   };
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputValue('');
-    if (onChange) {
-      onChange('');
+    // Focus back to input after clearing
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
+    // Call onClear if provided, which should handle the parent state update
     if (onClear) {
       onClear();
     }
-  };
+  }, [onClear]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
       handleClear();
     }
-  };
+  }, [handleClear]);
 
   const hasValue = inputValue.length > 0;
   const isSearching = inputValue !== debouncedValue && hasValue;
@@ -77,6 +80,7 @@ const SearchInput = ({
         </div>
         
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
           onChange={handleInputChange}
