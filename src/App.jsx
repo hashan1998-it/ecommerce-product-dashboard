@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from './components/UI/Layout';
 import Card from './components/UI/Card';
 import Button from './components/UI/Button';
+import { sampleProducts, getProductStats, PRODUCT_CATEGORIES, FALLBACK_IMAGE } from './utils';
 import './App.css';
 
 function App() {
-  // Mock data for demonstration
-  const mockProductCount = 0;
+  const [products] = useState(sampleProducts);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    // Calculate product statistics
+    const productStats = getProductStats(products);
+    setStats(productStats);
+  }, [products]);
+
+  const handleImageError = (e) => {
+    e.target.src = FALLBACK_IMAGE;
+  };
 
   return (
-    <Layout productCount={mockProductCount}>
+    <Layout productCount={products.length}>
       <div className="app-content">
         <div className="welcome-section">
           <Card className="welcome-card" hover>
@@ -21,6 +32,28 @@ function App() {
                 Manage your e-commerce product catalog with ease. Add, edit, search, 
                 and filter products with our comprehensive dashboard.
               </p>
+              
+              {stats && (
+                <div className="stats-grid">
+                  <div className="stat-card">
+                    <span className="stat-number">{stats.total}</span>
+                    <span className="stat-label">Total Products</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-number">{stats.inStock}</span>
+                    <span className="stat-label">In Stock</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-number">{stats.lowStock}</span>
+                    <span className="stat-label">Low Stock</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-number">{stats.outOfStock}</span>
+                    <span className="stat-label">Out of Stock</span>
+                  </div>
+                </div>
+              )}
+
               <div className="feature-list">
                 <div className="feature-item">
                   <span className="feature-icon">📦</span>
@@ -52,48 +85,48 @@ function App() {
         </div>
 
         <div className="demo-section">
-          <h3>Component Showcase</h3>
-          <div className="component-demo">
+          <h3>Product Data Overview</h3>
+          <div className="data-showcase">
             <Card className="demo-card">
-              <Card.Header>Button Variants</Card.Header>
+              <Card.Header>Product Categories</Card.Header>
               <Card.Body>
-                <div className="button-showcase">
-                  <Button variant="primary">Primary</Button>
-                  <Button variant="secondary">Secondary</Button>
-                  <Button variant="success">Success</Button>
-                  <Button variant="danger">Danger</Button>
-                  <Button variant="outline">Outline</Button>
-                  <Button variant="ghost">Ghost</Button>
-                </div>
-                <div className="button-showcase">
-                  <Button size="small">Small</Button>
-                  <Button size="medium">Medium</Button>
-                  <Button size="large">Large</Button>
-                </div>
-                <div className="button-showcase">
-                  <Button loading>Loading...</Button>
-                  <Button disabled>Disabled</Button>
+                <div className="categories-grid">
+                  {PRODUCT_CATEGORIES.map(category => (
+                    <div key={category} className="category-item">
+                      <span className="category-name">{category}</span>
+                      <span className="category-count">
+                        {stats?.categories[category] || 0} products
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </Card.Body>
             </Card>
 
             <Card className="demo-card">
-              <Card.Header>Card Variants</Card.Header>
+              <Card.Header>Sample Products Preview</Card.Header>
               <Card.Body>
-                <div className="card-showcase">
-                  <Card variant="primary" padding="small">
-                    <Card.Body>Primary Card</Card.Body>
-                  </Card>
-                  <Card variant="success" padding="small">
-                    <Card.Body>Success Card</Card.Body>
-                  </Card>
-                  <Card variant="warning" padding="small">
-                    <Card.Body>Warning Card</Card.Body>
-                  </Card>
-                  <Card variant="danger" padding="small">
-                    <Card.Body>Danger Card</Card.Body>
-                  </Card>
+                <div className="products-preview">
+                  {products.slice(0, 3).map(product => (
+                    <div key={product.id} className="product-preview-item">
+                      <div className="product-preview-image">
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name}
+                          onError={handleImageError}
+                        />
+                      </div>
+                      <div className="product-preview-info">
+                        <h4>{product.name}</h4>
+                        <p>${product.price}</p>
+                        <span className="category-tag">{product.category}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+                <p className="text-muted">
+                  ...and {products.length - 3} more products ready for management
+                </p>
               </Card.Body>
             </Card>
           </div>
