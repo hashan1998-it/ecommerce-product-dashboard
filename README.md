@@ -31,5 +31,5 @@ A comprehensive React application for managing an e-commerce product catalog wit
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/hashan1998-it/ecommerce-product-dashboard.git
    cd ecommerce-product-dashboard
