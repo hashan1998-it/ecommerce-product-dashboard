@@ -1,0 +1,121 @@
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .card-shadow {
+    box-shadow: var(--box-shadow);
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow-lg);
+    border-color: #cbd5e0;
+  }
+  
+  /* Card Variants */
+  .card-default {
+    background: white;
+    border-color: #e2e8f0;
+  }
+  
+  .card-primary {
+    border-color: var(--primary-color);
+    border-width: 2px;
+  }
+  
+  .card-success {
+    border-color: var(--success-color);
+    border-width: 2px;
+  }
+  
+  .card-warning {
+    border-color: var(--warning-color);
+    border-width: 2px;
+  }
+  
+  .card-danger {
+    border-color: var(--danger-color);
+    border-width: 2px;
+  }
+  
+  /* Card Padding */
+  .card-padding-none {
+    padding: 0;
+  }
+  
+  .card-padding-small {
+    padding: 0.75rem;
+  }
+  
+  .card-padding-normal {
+    padding: 1.5rem;
+  }
+  
+  .card-padding-large {
+    padding: 2rem;
+  }
+  
+  /* Card Sections */
+  .card-header {
+    padding: 1rem 1.5rem;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+    flex: 1;
+  }
+  
+  .card-footer {
+    padding: 1rem 1.5rem;
+    background-color: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+  
+  /* Card with no padding overrides */
+  .card-padding-none .card-header,
+  .card-padding-none .card-body,
+  .card-padding-none .card-footer {
+    padding: 0;
+  }
+  
+  .card-padding-small .card-header,
+  .card-padding-small .card-footer {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .card-padding-small .card-body {
+    padding: 0.75rem;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .card-header,
+    .card-body,
+    .card-footer {
+      padding: 1rem;
+    }
+    
+    .card-footer {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .card-header,
+    .card-body,
+    .card-footer {
+      padding: 0.75rem;
+    }
+  }
