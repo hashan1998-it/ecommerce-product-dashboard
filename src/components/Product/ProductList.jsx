@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import ProductGrid from './ProductGrid';
+import SearchInput from '../UI/SearchInput';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
-import { ProductListPropTypes, getProductStats, formatPrice } from '../../utils';
+import { ProductListPropTypes, getProductStats, formatPrice} from '../../utils';
+import useProductFilters from '../../hooks/useProductFilters';
 import './ProductList.css';
 
 const ProductList = ({ 
@@ -15,18 +17,29 @@ const ProductList = ({
   onAddNew,
   title = "Products",
   showStats = true,
-  showAddButton = true
+  showAddButton = true,
+  showSearch = true
 }) => {
   const [sortBy, setSortBy] = useState('name_asc');
   
+  // Use the product filters hook for search functionality
+  const {
+    filters,
+    filteredProducts,
+    updateFilter,
+    clearFilters,
+    hasActiveFilters,
+    activeFilterCount
+  } = useProductFilters(products);
+
   const stats = useMemo(() => {
     return showStats ? getProductStats(products) : null;
   }, [products, showStats]);
 
   const sortedProducts = useMemo(() => {
-    if (!products || products.length === 0) return [];
+    if (!filteredProducts || filteredProducts.length === 0) return [];
     
-    const sorted = [...products];
+    const sorted = [...filteredProducts];
     
     switch (sortBy) {
       case 'name_asc':
@@ -49,7 +62,19 @@ const ProductList = ({
       default:
         return sorted;
     }
-  }, [products, sortBy]);
+  }, [filteredProducts, sortBy]);
+
+  const handleSearchChange = (searchValue) => {
+    updateFilter('search', searchValue);
+  };
+
+  const handleSearchClear = () => {
+    updateFilter('search', '');
+  };
+
+  const handleClearAllFilters = () => {
+    clearFilters();
+  };
 
   return (
     <div className="product-list">
@@ -64,13 +89,69 @@ const ProductList = ({
                   <span className="loading-text">Loading...</span>
                 ) : (
                   <span>
-                    {products?.length || 0} {products?.length === 1 ? 'product' : 'products'}
+                    {hasActiveFilters ? (
+                      <>
+                        Showing {sortedProducts.length} of {products?.length || 0} products
+                        {filters.search && (
+                          <span className="search-term"> for "{filters.search}"</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {products?.length || 0} {products?.length === 1 ? 'product' : 'products'}
+                      </>
+                    )}
                   </span>
                 )}
               </div>
             </div>
             
             <div className="product-list-actions">
+              {showAddButton && (
+                <Button 
+                  variant="primary" 
+                  onClick={onAddNew}
+                  disabled={loading}
+                >
+                  Add Product
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Search and Filter Section */}
+          {showSearch && (
+            <div className="search-filter-section">
+              <div className="search-controls">
+                <SearchInput
+                  value={filters.search}
+                  onChange={handleSearchChange}
+                  onClear={handleSearchClear}
+                  placeholder="Search products by name, description, or category..."
+                  disabled={loading}
+                  showResultsCount={true}
+                  resultsCount={sortedProducts.length}
+                  totalCount={products?.length || 0}
+                  className="product-search"
+                />
+                
+                {hasActiveFilters && (
+                  <div className="active-filters">
+                    <span className="active-filters-label">
+                      {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="small"
+                      onClick={handleClearAllFilters}
+                      disabled={loading}
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
               <div className="sort-controls">
                 <label htmlFor="sort-select" className="sort-label">
                   Sort by:
@@ -91,18 +172,8 @@ const ProductList = ({
                   <option value="category">Category</option>
                 </select>
               </div>
-              
-              {showAddButton && (
-                <Button 
-                  variant="primary" 
-                  onClick={onAddNew}
-                  disabled={loading}
-                >
-                  Add Product
-                </Button>
-              )}
             </div>
-          </div>
+          )}
           
           {/* Statistics Section */}
           {showStats && stats && (
@@ -135,6 +206,14 @@ const ProductList = ({
         onEdit={onEdit}
         onDelete={onDelete}
         onView={onView}
+        emptyMessage={
+          hasActiveFilters ? "No products match your search" : "No products found"
+        }
+        emptyDescription={
+          hasActiveFilters 
+            ? "Try adjusting your search terms or clearing filters." 
+            : "Start by adding your first product to the catalog."
+        }
       />
     </div>
   );
@@ -149,7 +228,8 @@ ProductList.propTypes = {
   onAddNew: PropTypes.func,
   title: PropTypes.string,
   showStats: PropTypes.bool,
-  showAddButton: PropTypes.bool
+  showAddButton: PropTypes.bool,
+  showSearch: PropTypes.bool
 };
 
 export default ProductList;

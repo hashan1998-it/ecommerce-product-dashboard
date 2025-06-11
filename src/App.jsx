@@ -32,7 +32,6 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deletingProduct, setDeletingProduct] = useState(null);
-  // const [showDemo, setShowDemo] = useState(false);
 
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
@@ -84,28 +83,6 @@ function App() {
     }
   };
 
-  // Demo function to update the first product
-  // const handleDemoUpdateProduct = async () => {
-  //   try {
-  //     if (products.length === 0) {
-  //       showNotification('No products to update. Add a product first!', 'warning');
-  //       return;
-  //     }
-
-  //     const firstProduct = products[0];
-  //     const updates = {
-  //       name: `${firstProduct.name} (Updated)`,
-  //       price: Math.round((firstProduct.price * 1.1) * 100) / 100,
-  //       stock: Math.max(0, firstProduct.stock - 1)
-  //     };
-
-  //     await updateProduct(firstProduct.id, updates);
-  //     showNotification(`Successfully updated "${firstProduct.name}"!`, 'success');
-  //   } catch (error) {
-  //     showNotification(`Failed to update product: ${error.message}`, 'error');
-  //   }
-  // };
-
   // Handle product actions
   const handleEditProductClick = (product) => {
     setEditingProduct(product);
@@ -144,6 +121,56 @@ function App() {
     setDeletingProduct(null);
   };
 
+  // Demo function to add sample products for testing search
+  const handleAddSampleProducts = async () => {
+    const sampleProducts = [
+      {
+        name: "iPhone 15 Pro Max",
+        price: 1199.99,
+        stock: 25,
+        category: "Electronics",
+        description: "Latest Apple smartphone with titanium design and advanced camera system"
+      },
+      {
+        name: "MacBook Air M3",
+        price: 1299.99,
+        stock: 15,
+        category: "Electronics",
+        description: "Ultra-thin laptop with M3 chip for incredible performance"
+      },
+      {
+        name: "Nike Air Jordan 1",
+        price: 169.99,
+        stock: 30,
+        category: "Sports",
+        description: "Classic basketball shoes with iconic design"
+      },
+      {
+        name: "Levi's 501 Original Jeans",
+        price: 89.99,
+        stock: 50,
+        category: "Clothing",
+        description: "Classic straight-fit jeans in premium denim"
+      },
+      {
+        name: "JavaScript: The Good Parts",
+        price: 29.99,
+        stock: 100,
+        category: "Books",
+        description: "Essential guide to JavaScript programming best practices"
+      }
+    ];
+
+    try {
+      for (const product of sampleProducts) {
+        await addProduct(product);
+      }
+      showNotification(`Added ${sampleProducts.length} sample products for testing!`, "success");
+    } catch (error) {
+      showNotification(`Failed to add sample products: ${error.message}`, "error");
+    }
+  };
+
   return (
     <Layout productCount={count}>
       <div className="app-content">
@@ -164,78 +191,52 @@ function App() {
           </div>
         )}
 
-        {/* Demo Controls */}
-        {/* <Card className="demo-controls">
-          <Card.Header>
-            <h3>🚀 Enhanced Product Management</h3>
-          </Card.Header>
-          <Card.Body>
-            <p>
-              Experience the complete <strong>CRUD functionality</strong> with professional forms, 
-              edit mode, and optimistic updates!
-            </p>
-            <div className="demo-buttons">
-              <Button 
-                variant="primary" 
-                onClick={handleAddNewProduct}
-                disabled={loading}
-              >
-                ➕ Add Product
-              </Button>
+        {/* Demo Controls for Search Testing */}
+        {products.length === 0 && !loading && (
+          <Card className="demo-controls">
+            <Card.Header>
+              <h3>🔍 Test Real-time Search</h3>
+            </Card.Header>
+            <Card.Body>
+              <p>
+                Add sample products to test the real-time search functionality with debounced input, 
+                case-insensitive matching, and live results count.
+              </p>
+              <div className="demo-buttons">
+                <Button 
+                  variant="primary" 
+                  onClick={handleAddSampleProducts}
+                  disabled={loading}
+                >
+                  🚀 Add Sample Products
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleAddNewProduct}
+                  disabled={loading}
+                >
+                  ➕ Add Single Product
+                </Button>
+              </div>
               
-              <Button 
-                variant="success" 
-                onClick={handleDemoUpdateProduct}
-                disabled={loading || products.length === 0}
-              >
-                ✏️ Quick Update First Product
-              </Button>
-              
-              <Button 
-                variant="secondary" 
-                onClick={() => {
-                  const demoProduct = {
-                    name: `Demo Product ${products.length + 1}`,
-                    price: 99.99,
-                    stock: 10,
-                    category: PRODUCT_CATEGORIES[0],
-                    description: 'This is a demo product'
-                  };
-                  handleAddProduct(demoProduct);
-                }}
-                disabled={loading}
-              >
-                🎲 Quick Add Demo Product
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={() => setShowDemo(!showDemo)}
-              >
-                {showDemo ? 'Hide' : 'Show'} Edit Features
-              </Button>
-            </div>
-            
-            {showDemo && (
               <div className="demo-info">
-                <h4>✨ Edit Mode Features:</h4>
+                <h4>✨ Search Features:</h4>
                 <ul>
-                  <li><strong>Pre-populated Forms:</strong> Existing data loads automatically</li>
-                  <li><strong>Change Tracking:</strong> Visual indicators for modified fields</li>
-                  <li><strong>Optimistic Updates:</strong> Immediate UI updates with rollback on error</li>
-                  <li><strong>Smart Validation:</strong> Button enables when changes are valid</li>
-                  <li><strong>Reset Functionality:</strong> Revert to original values</li>
-                  <li><strong>Cancel Operation:</strong> Discard changes without saving</li>
-                  <li><strong>Clear User Feedback:</strong> Success/error notifications</li>
-                  <li><strong>Confirmation Dialogs:</strong> Prevent accidental deletions</li>
+                  <li><strong>Real-time Search:</strong> 300ms debounced input for smooth performance</li>
+                  <li><strong>Smart Matching:</strong> Searches product names, descriptions, and categories</li>
+                  <li><strong>Case Insensitive:</strong> Find products regardless of capitalization</li>
+                  <li><strong>Live Results:</strong> See result count update as you type</li>
+                  <li><strong>Quick Clear:</strong> Clear search with escape key or clear button</li>
+                  <li><strong>Filter Integration:</strong> Works seamlessly with existing filters</li>
                 </ul>
                 <div className="demo-hint">
-                  💡 <strong>Try it:</strong> Click "Edit" on any product to see the enhanced form experience!
+                  💡 <strong>Try searching for:</strong> "iPhone", "nike", "javascript", "denim", or "camera"
                 </div>
               </div>
-            )}
-          </Card.Body>
-        </Card> */}
+            </Card.Body>
+          </Card>
+        )}
 
         {/* Add Product Modal */}
         <Modal
@@ -305,6 +306,7 @@ function App() {
             title="Product Catalog"
             showStats={true}
             showAddButton={true}
+            showSearch={true}
           />
         )}
       </div>
