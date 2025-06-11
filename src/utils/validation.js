@@ -37,6 +37,10 @@ export const validatePrice = (price) => {
     return 'Price must be greater than 0';
   }
   
+  if (numPrice > 999999.99) {
+    return 'Price cannot exceed $999,999.99';
+  }
+  
   // Check decimal places
   const decimalPlaces = (price.toString().split('.')[1] || '').length;
   if (decimalPlaces > VALIDATION_RULES.PRICE.DECIMAL_PLACES) {
@@ -62,6 +66,10 @@ export const validateStock = (stock) => {
     return 'Stock cannot be negative';
   }
   
+  if (numStock > 999999) {
+    return 'Stock cannot exceed 999,999';
+  }
+  
   if (!Number.isInteger(numStock)) {
     return 'Stock must be a whole number';
   }
@@ -83,6 +91,24 @@ export const validateDescription = (description) => {
 };
 
 /**
+ * Validate image URL
+ * @param {string} url - URL to validate
+ * @returns {string|null} Error message or null if valid
+ */
+export const validateImageUrl = (url) => {
+  if (!url || url.trim() === '') {
+    return null; // URL is optional
+  }
+  
+  try {
+    new URL(url);
+    return null;
+  } catch {
+    return 'Please enter a valid URL';
+  }
+};
+
+/**
  * Validate entire product object
  * @param {Object} product - Product object to validate
  * @returns {Object} Object with field errors
@@ -101,6 +127,9 @@ export const validateProduct = (product) => {
   
   const descriptionError = validateDescription(product.description);
   if (descriptionError) errors.description = descriptionError;
+  
+  const imageUrlError = validateImageUrl(product.imageUrl);
+  if (imageUrlError) errors.imageUrl = imageUrlError;
   
   if (!product.category) {
     errors.category = 'Category is required';

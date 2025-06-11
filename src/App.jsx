@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Layout from './components/UI/Layout';
+import Modal from './components/UI/Modal';
 import { ProductList } from './components/Product';
+import { ProductForm } from './components/Forms';
 import LoadingSpinner from './components/UI/LoadingSpinner';
 import ErrorMessage from './components/UI/ErrorMessage';
 import Button from './components/UI/Button';
@@ -26,11 +28,37 @@ function App() {
   });
 
   const [notification, setNotification] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [showDemo, setShowDemo] = useState(false);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Handle add product form submission
+  const handleAddProduct = async (productData) => {
+    try {
+      const newProduct = await addProduct(productData);
+      showNotification(`Successfully added "${newProduct.name}"!`, 'success');
+      setShowAddModal(false);
+    } catch (error) {
+      showNotification(`Failed to add product: ${error.message}`, 'error');
+      throw error; // Re-throw to let form handle the error state
+    }
+  };
+
+  // Handle edit product form submission
+  const handleEditProduct = async (productData) => {
+    try {
+      await updateProduct(editingProduct.id, productData);
+      showNotification(`Successfully updated "${productData.name}"!`, 'success');
+      setEditingProduct(null);
+    } catch (error) {
+      showNotification(`Failed to update product: ${error.message}`, 'error');
+      throw error; // Re-throw to let form handle the error state
+    }
   };
 
   // Demo function to add a sample product
@@ -42,7 +70,7 @@ function App() {
         price: Math.round((Math.random() * 500 + 50) * 100) / 100,
         category: PRODUCT_CATEGORIES[Math.floor(Math.random() * PRODUCT_CATEGORIES.length)],
         stock: Math.floor(Math.random() * 50 + 1),
-        imageUrl: 'https://via.placeholder.com/300x200/667eea/ffffff?text=Demo+Product'
+        imageUrl: ''
       };
 
       const newProduct = await addProduct(sampleProduct);
@@ -63,7 +91,7 @@ function App() {
       const firstProduct = products[0];
       const updates = {
         name: `${firstProduct.name} (Updated)`,
-        price: Math.round((firstProduct.price * 1.1) * 100) / 100, // 10% price increase
+        price: Math.round((firstProduct.price * 1.1) * 100) / 100,
         stock: Math.max(0, firstProduct.stock - 1)
       };
 
@@ -74,61 +102,9 @@ function App() {
     }
   };
 
-  // Demo function to add multiple products
-  const handleDemoAddMultiple = async () => {
-    const demoProducts = [
-      {
-        name: 'Demo Laptop',
-        description: 'High-performance laptop for testing',
-        price: 1299.99,
-        category: 'Electronics',
-        stock: 5,
-        imageUrl: 'https://via.placeholder.com/300x200/1565c0/ffffff?text=Demo+Laptop'
-      },
-      {
-        name: 'Demo Book',
-        description: 'Educational book for testing',
-        price: 29.99,
-        category: 'Books',
-        stock: 15,
-        imageUrl: 'https://via.placeholder.com/300x200/8e44ad/ffffff?text=Demo+Book'
-      },
-      {
-        name: 'Demo Shoes',
-        description: 'Comfortable running shoes for testing',
-        price: 89.99,
-        category: 'Sports',
-        stock: 8,
-        imageUrl: 'https://via.placeholder.com/300x200/e74c3c/ffffff?text=Demo+Shoes'
-      }
-    ];
-
-    try {
-      showNotification('Adding multiple products...', 'info');
-      
-      for (const productData of demoProducts) {
-        await addProduct(productData);
-      }
-      
-      showNotification(`Successfully added ${demoProducts.length} demo products!`, 'success');
-    } catch (error) {
-      showNotification(`Failed to add products: ${error.message}`, 'error');
-    }
-  };
-
-  const handleEditProduct = async (product) => {
-    try {
-      // Demo edit: Just update the name and price
-      const updates = {
-        name: `${product.name} (Edited)`,
-        price: Math.round((product.price * 0.9) * 100) / 100 // 10% discount
-      };
-      
-      await updateProduct(product.id, updates);
-      showNotification(`"${product.name}" has been updated successfully`, 'success');
-    } catch (error) {
-      showNotification(error.message, 'error');
-    }
+  // Handle product actions
+  const handleEditProductClick = (product) => {
+    setEditingProduct(product);
   };
 
   const handleDeleteProduct = async (product) => {
@@ -143,16 +119,25 @@ function App() {
   };
 
   const handleViewProduct = (product) => {
-    showNotification(`Viewing "${product.name}" - Price: $${product.price}`, 'info');
+    showNotification(`Viewing "${product.name}" - Price: ${product.price}`, 'info');
   };
 
   const handleAddNewProduct = () => {
-    showNotification('Click "Demo Add Product" button to test the addProduct function!', 'info');
+    setShowAddModal(true);
   };
 
   const handleRetryLoad = () => {
     clearError();
     refreshProducts();
+  };
+
+  // Close modals
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingProduct(null);
   };
 
   return (
@@ -178,20 +163,20 @@ function App() {
         {/* Demo Controls */}
         <Card className="demo-controls">
           <Card.Header>
-            <h3>🚀 State Management Demo</h3>
+            <h3>🚀 Product Form Demo</h3>
           </Card.Header>
           <Card.Body>
             <p>
-              Test the <strong>useProducts</strong> hook with real CRUD operations! 
-              These buttons demonstrate the <code>addProduct</code> and <code>updateProduct</code> functions in action.
+              Test the new <strong>ProductForm</strong> component with real-time validation! 
+              Use the "Add Product" button for the full form experience.
             </p>
             <div className="demo-buttons">
               <Button 
                 variant="primary" 
-                onClick={handleDemoAddProduct}
+                onClick={handleAddNewProduct}
                 disabled={loading}
               >
-                🆕 Demo Add Product
+                ➕ Add Product (Form)
               </Button>
               
               <Button 
@@ -204,34 +189,71 @@ function App() {
               
               <Button 
                 variant="secondary" 
-                onClick={handleDemoAddMultiple}
+                onClick={handleDemoAddProduct}
                 disabled={loading}
               >
-                📦 Add Multiple Demo Products
+                🎲 Quick Add Demo Product
               </Button>
               
               <Button 
                 variant="outline" 
                 onClick={() => setShowDemo(!showDemo)}
               >
-                {showDemo ? 'Hide' : 'Show'} Implementation Details
+                {showDemo ? 'Hide' : 'Show'} Form Features
               </Button>
             </div>
             
             {showDemo && (
               <div className="demo-info">
-                <h4>🔧 What's happening:</h4>
+                <h4>✨ ProductForm Features:</h4>
                 <ul>
-                  <li><strong>Add Product:</strong> Uses <code>addProduct()</code> with validation and localStorage persistence</li>
-                  <li><strong>Update Product:</strong> Uses <code>updateProduct()</code> with optimistic updates</li>
-                  <li><strong>Delete Product:</strong> Uses <code>deleteProduct()</code> with confirmation</li>
-                  <li><strong>State Management:</strong> All operations go through useReducer with proper loading/error states</li>
-                  <li><strong>Persistence:</strong> Changes are automatically saved to localStorage</li>
+                  <li><strong>Real-time Validation:</strong> Instant feedback as you type</li>
+                  <li><strong>Character Counters:</strong> Visual indicators for field limits</li>
+                  <li><strong>Image Preview:</strong> See images before submitting</li>
+                  <li><strong>Form Reset:</strong> Clear all fields with one click</li>
+                  <li><strong>Error Handling:</strong> User-friendly validation messages</li>
+                  <li><strong>Loading States:</strong> Disabled form during submission</li>
+                  <li><strong>Modal Integration:</strong> Clean popup interface</li>
                 </ul>
               </div>
             )}
           </Card.Body>
         </Card>
+
+        {/* Add Product Modal */}
+        <Modal
+          isOpen={showAddModal}
+          onClose={handleCloseAddModal}
+          title="Add New Product"
+          size="large"
+        >
+          <ProductForm
+            onSubmit={handleAddProduct}
+            onCancel={handleCloseAddModal}
+            loading={loading}
+            submitText="Add Product"
+            title="" // Title is handled by modal
+          />
+        </Modal>
+
+        {/* Edit Product Modal */}
+        <Modal
+          isOpen={!!editingProduct}
+          onClose={handleCloseEditModal}
+          title="Edit Product"
+          size="large"
+        >
+          {editingProduct && (
+            <ProductForm
+              product={editingProduct}
+              onSubmit={handleEditProduct}
+              onCancel={handleCloseEditModal}
+              loading={loading}
+              submitText="Update Product"
+              title="" // Title is handled by modal
+            />
+          )}
+        </Modal>
 
         {/* Main Content */}
         {loading && products.length === 0 ? (
@@ -245,7 +267,7 @@ function App() {
           <ProductList
             products={products}
             loading={loading}
-            onEdit={handleEditProduct}
+            onEdit={handleEditProductClick}
             onDelete={handleDeleteProduct}
             onView={handleViewProduct}
             onAddNew={handleAddNewProduct}
