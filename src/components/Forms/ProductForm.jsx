@@ -16,8 +16,8 @@ const ProductForm = ({
   onSubmit, 
   onCancel, 
   loading = false,
-  submitText = 'Add Product',
-  title = 'Add New Product' 
+  submitText = null,
+  title = null 
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -28,21 +28,60 @@ const ProductForm = ({
     imageUrl: ''
   });
 
+  const [originalData, setOriginalData] = useState(null);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Determine if we're in edit mode
+  const isEditMode = !!product;
+  
+  // Dynamic titles and button text based on mode
+  const formTitle = title || (isEditMode ? 'Edit Product' : 'Add New Product');
+  const buttonText = submitText || (isEditMode ? 'Update Product' : 'Add Product');
+
   // Initialize form data when product prop changes (for edit mode)
   useEffect(() => {
     if (product) {
-      setFormData({
+      const initialFormData = {
         name: product.name || '',
         description: product.description || '',
         price: product.price?.toString() || '',
         category: product.category || '',
         stock: product.stock?.toString() || '',
         imageUrl: product.imageUrl || ''
+      };
+      
+      setFormData(initialFormData);
+      setOriginalData(initialFormData); // Keep track of original data
+      
+      // For edit mode, mark all fields as touched and validate
+      const allTouched = {
+        name: true,
+        description: true,
+        price: true,
+        category: true,
+        stock: true,
+        imageUrl: true
+      };
+      setTouched(allTouched);
+      
+      // Validate initial data
+      const validation = validateProductData(initialFormData);
+      setErrors(validation.errors);
+    } else {
+      // For add mode, reset everything
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        stock: '',
+        imageUrl: ''
       });
+      setOriginalData(null);
+      setErrors({});
+      setTouched({});
     }
   }, [product]);
 
@@ -104,7 +143,7 @@ const ProductForm = ({
       await onSubmit(submissionData);
       
       // Reset form on successful submission (only for add mode)
-      if (!product) {
+      if (!isEditMode) {
         handleReset();
       }
     } catch (error) {
@@ -115,46 +154,57 @@ const ProductForm = ({
     }
   };
 
-  // Reset form
+  // Reset form to original state
   const handleReset = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      stock: '',
-      imageUrl: ''
-    });
-    setErrors({});
-    setTouched({});
+    if (isEditMode && originalData) {
+      // In edit mode, reset to original product data
+      setFormData(originalData);
+      setErrors({});
+      // Keep touched state for edit mode
+    } else {
+      // In add mode, clear everything
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        stock: '',
+        imageUrl: ''
+      });
+      setErrors({});
+      setTouched({});
+    }
   };
 
-  // Handle cancel
+  // Handle cancel - different behavior for edit vs add
   const handleCancel = () => {
     if (onCancel) {
       onCancel();
+    } else if (isEditMode) {
+      // In edit mode, just close/reset
+      handleReset();
     } else {
+      // In add mode, clear form
       handleReset();
     }
   };
 
-  // Check if form has changes (for edit mode)
-  const hasChanges = product ? 
-    JSON.stringify(formData) !== JSON.stringify({
-      name: product.name || '',
-      description: product.description || '',
-      price: product.price?.toString() || '',
-      category: product.category || '',
-      stock: product.stock?.toString() || '',
-      imageUrl: product.imageUrl || ''
-    }) : 
-    Object.values(formData).some(value => value.trim() !== '');
+  // Check if form has changes from original data
+  const hasChanges = () => {
+    if (!isEditMode) {
+      // In add mode, check if any field has content
+      return Object.values(formData).some(value => value.trim() !== '');
+    } else {
+      // In edit mode, compare with original data
+      return originalData ? JSON.stringify(formData) !== JSON.stringify(originalData) : false;
+    }
+  };
 
   // Calculate character count for description
   const descriptionLength = formData.description.length;
   const maxDescriptionLength = VALIDATION_RULES.DESCRIPTION.MAX_LENGTH;
 
-  // FIXED: Check if form is valid - more lenient validation for button state
+  // Check if form is valid
   const isFormValid = () => {
     // Check required fields have values
     const hasRequiredFields = 
@@ -167,27 +217,75 @@ const ProductForm = ({
       !isNaN(parseInt(formData.stock)) && 
       parseInt(formData.stock) >= 0;
 
-    // Check if there are any current validation errors for touched fields
-    const hasErrors = Object.keys(errors).some(key => 
-      touched[key] && errors[key]
-    );
+    // Check for validation errors
+    const hasErrors = Object.keys(errors).some(key => errors[key]);
 
-    return hasRequiredFields && !hasErrors;
+    if (isEditMode) {
+      // For edit mode, also require changes
+      return hasRequiredFields && !hasErrors && hasChanges();
+    } else {
+      // For add mode, just check validity
+      return hasRequiredFields && !hasErrors;
+    }
   };
+
+  // Get list of changed fields for display
+  const getChangedFields = () => {
+    if (!isEditMode || !originalData) return [];
+    
+    const changed = [];
+    Object.keys(formData).forEach(key => {
+      if (formData[key] !== originalData[key]) {
+        changed.push(key);
+      }
+    });
+    return changed;
+  };
+
+  const changedFields = getChangedFields();
 
   return (
     <Card className="product-form-card">
       <Card.Header>
-        <h3 className="form-title">{title}</h3>
+        <div className="form-header">
+          <h3 className="form-title">{formTitle}</h3>
+          {isEditMode && (
+            <div className="edit-mode-indicator">
+              <span className="edit-badge">Editing</span>
+              {changedFields.length > 0 && (
+                <span className="changes-badge">
+                  {changedFields.length} change{changedFields.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </Card.Header>
       
       <form onSubmit={handleSubmit} className="product-form">
         <Card.Body>
+          {/* Show changed fields indicator */}
+          {isEditMode && changedFields.length > 0 && (
+            <div className="changes-summary">
+              <h4>Modified Fields:</h4>
+              <div className="changed-fields">
+                {changedFields.map(field => (
+                  <span key={field} className="changed-field-tag">
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="form-grid">
             {/* Product Name */}
             <div className="form-group">
               <label htmlFor="name" className="form-label required">
                 Product Name
+                {isEditMode && originalData && formData.name !== originalData.name && (
+                  <span className="field-changed-indicator">*</span>
+                )}
               </label>
               <input
                 type="text"
@@ -195,7 +293,9 @@ const ProductForm = ({
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className={`form-input ${errors.name && touched.name ? 'error' : ''}`}
+                className={`form-input ${errors.name && touched.name ? 'error' : ''} ${
+                  isEditMode && originalData && formData.name !== originalData.name ? 'changed' : ''
+                }`}
                 placeholder="Enter product name"
                 maxLength={VALIDATION_RULES.PRODUCT_NAME.MAX_LENGTH}
                 required
@@ -213,6 +313,9 @@ const ProductForm = ({
             <div className="form-group">
               <label htmlFor="price" className="form-label required">
                 Price ($)
+                {isEditMode && originalData && formData.price !== originalData.price && (
+                  <span className="field-changed-indicator">*</span>
+                )}
               </label>
               <input
                 type="number"
@@ -220,7 +323,9 @@ const ProductForm = ({
                 name="price"
                 value={formData.price}
                 onChange={handleInputChange}
-                className={`form-input ${errors.price && touched.price ? 'error' : ''}`}
+                className={`form-input ${errors.price && touched.price ? 'error' : ''} ${
+                  isEditMode && originalData && formData.price !== originalData.price ? 'changed' : ''
+                }`}
                 placeholder="0.00"
                 min="0.01"
                 step="0.01"
@@ -236,13 +341,18 @@ const ProductForm = ({
             <div className="form-group">
               <label htmlFor="category" className="form-label required">
                 Category
+                {isEditMode && originalData && formData.category !== originalData.category && (
+                  <span className="field-changed-indicator">*</span>
+                )}
               </label>
               <select
                 id="category"
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
-                className={`form-input ${errors.category && touched.category ? 'error' : ''}`}
+                className={`form-input ${errors.category && touched.category ? 'error' : ''} ${
+                  isEditMode && originalData && formData.category !== originalData.category ? 'changed' : ''
+                }`}
                 required
                 disabled={loading || isSubmitting}
               >
@@ -262,6 +372,9 @@ const ProductForm = ({
             <div className="form-group">
               <label htmlFor="stock" className="form-label required">
                 Stock Quantity
+                {isEditMode && originalData && formData.stock !== originalData.stock && (
+                  <span className="field-changed-indicator">*</span>
+                )}
               </label>
               <input
                 type="number"
@@ -269,7 +382,9 @@ const ProductForm = ({
                 name="stock"
                 value={formData.stock}
                 onChange={handleInputChange}
-                className={`form-input ${errors.stock && touched.stock ? 'error' : ''}`}
+                className={`form-input ${errors.stock && touched.stock ? 'error' : ''} ${
+                  isEditMode && originalData && formData.stock !== originalData.stock ? 'changed' : ''
+                }`}
                 placeholder="0"
                 min="0"
                 step="1"
@@ -287,13 +402,18 @@ const ProductForm = ({
             <label htmlFor="description" className="form-label">
               Description
               <span className="optional-text">(Optional)</span>
+              {isEditMode && originalData && formData.description !== originalData.description && (
+                <span className="field-changed-indicator">*</span>
+              )}
             </label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              className={`form-textarea ${errors.description && touched.description ? 'error' : ''}`}
+              className={`form-textarea ${errors.description && touched.description ? 'error' : ''} ${
+                isEditMode && originalData && formData.description !== originalData.description ? 'changed' : ''
+              }`}
               placeholder="Enter product description"
               rows="4"
               maxLength={maxDescriptionLength}
@@ -312,6 +432,9 @@ const ProductForm = ({
             <label htmlFor="imageUrl" className="form-label">
               Image URL
               <span className="optional-text">(Optional)</span>
+              {isEditMode && originalData && formData.imageUrl !== originalData.imageUrl && (
+                <span className="field-changed-indicator">*</span>
+              )}
             </label>
             <input
               type="url"
@@ -319,7 +442,9 @@ const ProductForm = ({
               name="imageUrl"
               value={formData.imageUrl}
               onChange={handleInputChange}
-              className={`form-input ${errors.imageUrl && touched.imageUrl ? 'error' : ''}`}
+              className={`form-input ${errors.imageUrl && touched.imageUrl ? 'error' : ''} ${
+                isEditMode && originalData && formData.imageUrl !== originalData.imageUrl ? 'changed' : ''
+              }`}
               placeholder="https://example.com/image.jpg"
               disabled={loading || isSubmitting}
             />
@@ -350,26 +475,6 @@ const ProductForm = ({
               </div>
             </div>
           )}
-
-          {/* Debug Info - Remove this in production */}
-          {import.meta.env.MODE === 'development' && (
-            <div style={{ 
-              padding: '1rem', 
-              background: '#f0f0f0', 
-              borderRadius: '4px', 
-              fontSize: '12px',
-              marginTop: '1rem'
-            }}>
-              <strong>Debug Info:</strong><br/>
-              Form Valid: {isFormValid() ? 'Yes' : 'No'}<br/>
-              Name: {formData.name} (length: {formData.name.length})<br/>
-              Price: {formData.price} (valid: {!isNaN(parseFloat(formData.price)) && parseFloat(formData.price) > 0 ? 'Yes' : 'No'})<br/>
-              Category: {formData.category}<br/>
-              Stock: {formData.stock} (valid: {!isNaN(parseInt(formData.stock)) && parseInt(formData.stock) >= 0 ? 'Yes' : 'No'})<br/>
-              Errors: {JSON.stringify(errors)}<br/>
-              Touched: {JSON.stringify(touched)}
-            </div>
-          )}
         </Card.Body>
 
         <Card.Footer className="form-actions">
@@ -383,14 +488,25 @@ const ProductForm = ({
               Cancel
             </Button>
             
-            {!product && (
+            {isEditMode && hasChanges() && (
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleReset}
-                disabled={loading || isSubmitting || !hasChanges}
+                disabled={loading || isSubmitting}
               >
-                Reset
+                Reset Changes
+              </Button>
+            )}
+            
+            {!isEditMode && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleReset}
+                disabled={loading || isSubmitting || !hasChanges()}
+              >
+                Clear Form
               </Button>
             )}
             
@@ -400,7 +516,7 @@ const ProductForm = ({
               loading={loading || isSubmitting}
               disabled={!isFormValid() || loading || isSubmitting}
             >
-              {loading || isSubmitting ? 'Saving...' : submitText}
+              {loading || isSubmitting ? 'Saving...' : buttonText}
             </Button>
           </div>
         </Card.Footer>
