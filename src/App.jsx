@@ -9,7 +9,6 @@ import ErrorMessage from "./components/UI/ErrorMessage";
 import Button from "./components/UI/Button";
 import Card from "./components/UI/Card";
 import { useProducts } from "./hooks";
-import { PRODUCT_CATEGORIES } from "./utils";
 import "./App.css";
 
 function App() {
@@ -40,11 +39,15 @@ function App() {
 
   // Handle add product form submission
   const handleAddProduct = async (productData) => {
+    console.log('App: handleAddProduct called with:', productData);
     try {
       const newProduct = await addProduct(productData);
+      console.log('App: Product added successfully:', newProduct);
       showNotification(`Successfully added "${newProduct.name}"!`, "success");
       setShowAddModal(false);
+      return newProduct;
     } catch (error) {
+      console.error('App: Failed to add product:', error);
       showNotification(`Failed to add product: ${error.message}`, "error");
       throw error; // Re-throw to let form handle the error state
     }
@@ -52,11 +55,13 @@ function App() {
 
   // Handle edit product form submission
   const handleEditProduct = async (productData) => {
+    console.log('App: handleEditProduct called with:', productData);
     try {
       const updatedProduct = await updateProduct(
         editingProduct.id,
         productData
       );
+      console.log('App: Product updated successfully:', updatedProduct);
       showNotification(
         `Successfully updated "${productData.name}"!`,
         "success"
@@ -64,6 +69,7 @@ function App() {
       setEditingProduct(null);
       return updatedProduct;
     } catch (error) {
+      console.error('App: Failed to update product:', error);
       showNotification(`Failed to update product: ${error.message}`, "error");
       throw error; // Re-throw to let form handle the error state
     }
@@ -85,21 +91,25 @@ function App() {
 
   // Handle product actions
   const handleEditProductClick = (product) => {
+    console.log('App: Edit product clicked:', product);
     setEditingProduct(product);
   };
 
   const handleDeleteProductClick = (product) => {
+    console.log('App: Delete product clicked:', product);
     setDeletingProduct(product);
   };
 
   const handleViewProduct = (product) => {
+    console.log('App: View product clicked:', product);
     showNotification(
-      `Viewing "${product.name}" - Price: ${product.price}`,
+      `Viewing "${product.name}" - Price: $${product.price}`,
       "info"
     );
   };
 
   const handleAddNewProduct = () => {
+    console.log('App: Add new product clicked');
     setShowAddModal(true);
   };
 
@@ -110,10 +120,12 @@ function App() {
 
   // Close modals
   const handleCloseAddModal = () => {
+    console.log('App: Close add modal');
     setShowAddModal(false);
   };
 
   const handleCloseEditModal = () => {
+    console.log('App: Close edit modal');
     setEditingProduct(null);
   };
 
@@ -121,8 +133,9 @@ function App() {
     setDeletingProduct(null);
   };
 
-  // Demo function to add sample products for testing search
+  // Demo function to add sample products for testing
   const handleAddSampleProducts = async () => {
+    console.log('App: Adding sample products');
     const sampleProducts = [
       {
         name: "iPhone 15 Pro Max",
@@ -158,14 +171,34 @@ function App() {
         stock: 100,
         category: "Books",
         description: "Essential guide to JavaScript programming best practices"
+      },
+      {
+        name: "Sony WH-1000XM5",
+        price: 399.99,
+        stock: 0,
+        category: "Electronics",
+        description: "Premium wireless noise-canceling headphones"
+      },
+      {
+        name: "KitchenAid Stand Mixer",
+        price: 349.99,
+        stock: 3,
+        category: "Home",
+        description: "Professional-grade stand mixer for baking enthusiasts"
       }
     ];
 
     try {
-      for (const product of sampleProducts) {
-        await addProduct(product);
+      let addedCount = 0;
+      for (const productData of sampleProducts) {
+        try {
+          await addProduct(productData);
+          addedCount++;
+        } catch (error) {
+          console.error('Failed to add sample product:', productData.name, error);
+        }
       }
-      showNotification(`Added ${sampleProducts.length} sample products for testing!`, "success");
+      showNotification(`Added ${addedCount} sample products for testing!`, "success");
     } catch (error) {
       showNotification(`Failed to add sample products: ${error.message}`, "error");
     }
@@ -191,16 +224,16 @@ function App() {
           </div>
         )}
 
-        {/* Demo Controls for Search Testing */}
+        {/* Demo Controls for Testing */}
         {products.length === 0 && !loading && (
           <Card className="demo-controls">
             <Card.Header>
-              <h3>🔍 Test Real-time Search</h3>
+              <h3>🔍 Test Complete Product Dashboard</h3>
             </Card.Header>
             <Card.Body>
               <p>
-                Add sample products to test the real-time search functionality with debounced input, 
-                case-insensitive matching, and live results count.
+                Add sample products to test the complete product management system with 
+                real-time search, advanced filtering, and full CRUD operations.
               </p>
               <div className="demo-buttons">
                 <Button 
@@ -221,17 +254,20 @@ function App() {
               </div>
               
               <div className="demo-info">
-                <h4>✨ Search Features:</h4>
+                <h4>✨ Complete Features:</h4>
                 <ul>
                   <li><strong>Real-time Search:</strong> 300ms debounced input for smooth performance</li>
+                  <li><strong>Advanced Filtering:</strong> Category, price range, and stock status filters</li>
                   <li><strong>Smart Matching:</strong> Searches product names, descriptions, and categories</li>
-                  <li><strong>Case Insensitive:</strong> Find products regardless of capitalization</li>
-                  <li><strong>Live Results:</strong> See result count update as you type</li>
-                  <li><strong>Quick Clear:</strong> Clear search with escape key or clear button</li>
-                  <li><strong>Filter Integration:</strong> Works seamlessly with existing filters</li>
+                  <li><strong>Complete CRUD:</strong> Create, read, update, and delete operations</li>
+                  <li><strong>Form Validation:</strong> Real-time validation with detailed error messages</li>
+                  <li><strong>Data Persistence:</strong> LocalStorage integration with error handling</li>
+                  <li><strong>Responsive Design:</strong> Mobile-first approach with touch-friendly UI</li>
+                  <li><strong>Performance Optimized:</strong> React.memo and memoized callbacks</li>
                 </ul>
                 <div className="demo-hint">
-                  💡 <strong>Try searching for:</strong> "iPhone", "nike", "javascript", "denim", or "camera"
+                  💡 <strong>Try these features:</strong> Search "iPhone", filter by category, 
+                  set price ranges, edit products, and test the responsive design!
                 </div>
               </div>
             </Card.Body>
@@ -250,7 +286,6 @@ function App() {
             onCancel={handleCloseAddModal}
             loading={loading}
             submitText="Add Product"
-            title="" // Title is handled by modal
           />
         </Modal>
 
@@ -268,7 +303,6 @@ function App() {
               onCancel={handleCloseEditModal}
               loading={loading}
               submitText="Update Product"
-              title="" // Title is handled by modal
             />
           )}
         </Modal>

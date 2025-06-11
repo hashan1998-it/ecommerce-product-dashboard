@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import ProductGrid from './ProductGrid';
 import SearchInput from '../UI/SearchInput';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
-import { ProductListPropTypes, getProductStats, formatPrice} from '../../utils';
-import useProductFilters from '../../hooks/useProductFilters';
+import { ProductListPropTypes, getProductStats, formatPrice, PRODUCT_CATEGORIES } from '../../utils';
 import './ProductList.css';
 
 const ProductList = ({ 
@@ -20,61 +19,152 @@ const ProductList = ({
   showAddButton = true,
   showSearch = true
 }) => {
+  // Local filter states
+  const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name_asc');
-  
-  // Use the product filters hook for search functionality
-  const {
-    filters,
-    filteredProducts,
-    updateFilter,
-    clearFilters,
-    hasActiveFilters,
-    activeFilterCount
-  } = useProductFilters(products);
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState('all');
+
+  // Apply all filters and sorting
+  const filteredAndSortedProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    
+    let filtered = [...products];
+
+    // Apply search filter
+    if (searchTerm && searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(product => {
+        const nameMatch = product.name.toLowerCase().includes(term);
+        const descriptionMatch = product.description?.toLowerCase().includes(term) || false;
+        const categoryMatch = product.category.toLowerCase().includes(term);
+        return nameMatch || descriptionMatch || categoryMatch;
+      });
+    }
+
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(product => product.category === categoryFilter);
+    }
+
+    // Apply price range filter
+    if (priceRange.min !== '') {
+      const minPrice = parseFloat(priceRange.min);
+      if (!isNaN(minPrice)) {
+        filtered = filtered.filter(product => product.price >= minPrice);
+      }
+    }
+    
+    if (priceRange.max !== '') {
+      const maxPrice = parseFloat(priceRange.max);
+      if (!isNaN(maxPrice)) {
+        filtered = filtered.filter(product => product.price <= maxPrice);
+      }
+    }
+
+    // Apply stock status filter
+    if (stockFilter !== 'all') {
+      filtered = filtered.filter(product => {
+        const stock = product.stock;
+        switch (stockFilter) {
+          case 'in_stock': {
+            return stock > 5;
+          }
+          case 'low_stock': {
+            return stock > 0 && stock <= 5;
+          }
+          case 'out_of_stock': {
+            return stock === 0;
+          }
+          default: {
+            return true;
+          }
+        }
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'price_asc':
+          return a.price - b.price;
+        case 'price_desc':
+          return b.price - a.price;
+        case 'stock_asc':
+          return a.stock - b.stock;
+        case 'stock_desc':
+          return b.stock - a.stock;
+        case 'category': {
+          const categoryCompare = a.category.localeCompare(b.category);
+          return categoryCompare === 0 ? a.name.localeCompare(b.name) : categoryCompare;
+        }
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [products, searchTerm, categoryFilter, priceRange, stockFilter, sortBy]);
 
   const stats = useMemo(() => {
     return showStats ? getProductStats(products) : null;
   }, [products, showStats]);
 
-  const sortedProducts = useMemo(() => {
-    if (!filteredProducts || filteredProducts.length === 0) return [];
-    
-    const sorted = [...filteredProducts];
-    
-    switch (sortBy) {
-      case 'name_asc':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case 'name_desc':
-        return sorted.sort((a, b) => b.name.localeCompare(a.name));
-      case 'price_asc':
-        return sorted.sort((a, b) => a.price - b.price);
-      case 'price_desc':
-        return sorted.sort((a, b) => b.price - a.price);
-      case 'stock_asc':
-        return sorted.sort((a, b) => a.stock - b.stock);
-      case 'stock_desc':
-        return sorted.sort((a, b) => b.stock - a.stock);
-      case 'category':
-        return sorted.sort((a, b) => {
-          const categoryCompare = a.category.localeCompare(b.category);
-          return categoryCompare === 0 ? a.name.localeCompare(b.name) : categoryCompare;
-        });
-      default:
-        return sorted;
-    }
-  }, [filteredProducts, sortBy]);
+  // Event handlers
+  const handleSearchChange = useCallback((searchValue) => {
+    setSearchTerm(searchValue);
+  }, []);
 
-  const handleSearchChange = (searchValue) => {
-    updateFilter('search', searchValue);
-  };
+  const handleSearchClear = useCallback(() => {
+    setSearchTerm('');
+  }, []);
 
-  const handleSearchClear = () => {
-    updateFilter('search', '');
-  };
+  const handleClearAllFilters = useCallback(() => {
+    setSearchTerm('');
+    setPriceRange({ min: '', max: '' });
+    setCategoryFilter('all');
+    setStockFilter('all');
+  }, []);
 
-  const handleClearAllFilters = () => {
-    clearFilters();
-  };
+  const handlePriceRangeChange = useCallback((type, value) => {
+    setPriceRange(prev => ({ ...prev, [type]: value }));
+  }, []);
+
+  const handleCategoryChange = useCallback((value) => {
+    setCategoryFilter(value);
+  }, []);
+
+  const handleStockFilterChange = useCallback((value) => {
+    setStockFilter(value);
+  }, []);
+
+  const handleSortChange = useCallback((value) => {
+    setSortBy(value);
+  }, []);
+
+  // Check for active filters
+  const hasActiveFilters = useMemo(() => {
+    return searchTerm !== '' ||
+           categoryFilter !== 'all' ||
+           priceRange.min !== '' ||
+           priceRange.max !== '' ||
+           stockFilter !== 'all';
+  }, [searchTerm, categoryFilter, priceRange.min, priceRange.max, stockFilter]);
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm.trim() !== '') count++;
+    if (categoryFilter !== 'all') count++;
+    if (priceRange.min !== '' || priceRange.max !== '') count++;
+    if (stockFilter !== 'all') count++;
+    return count;
+  }, [searchTerm, categoryFilter, priceRange.min, priceRange.max, stockFilter]);
 
   return (
     <div className="product-list">
@@ -91,9 +181,9 @@ const ProductList = ({
                   <span>
                     {hasActiveFilters ? (
                       <>
-                        Showing {sortedProducts.length} of {products?.length || 0} products
-                        {filters.search && (
-                          <span className="search-term"> for "{filters.search}"</span>
+                        Showing {filteredAndSortedProducts.length} of {products?.length || 0} products
+                        {searchTerm && (
+                          <span className="search-term"> for "{searchTerm}"</span>
                         )}
                       </>
                     ) : (
@@ -124,16 +214,117 @@ const ProductList = ({
             <div className="search-filter-section">
               <div className="search-controls">
                 <SearchInput
-                  value={filters.search}
+                  value={searchTerm}
                   onChange={handleSearchChange}
                   onClear={handleSearchClear}
                   placeholder="Search products by name, description, or category..."
                   disabled={loading}
                   showResultsCount={true}
-                  resultsCount={sortedProducts.length}
+                  resultsCount={filteredAndSortedProducts.length}
                   totalCount={products?.length || 0}
                   className="product-search"
                 />
+                
+                {/* Filter Controls */}
+                <div className="filter-controls">
+                  {/* Category Filter */}
+                  <div className="filter-group">
+                    <label htmlFor="category-filter" className="filter-label">Category:</label>
+                    <select
+                      id="category-filter"
+                      value={categoryFilter}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
+                      className="filter-select"
+                      disabled={loading}
+                    >
+                      <option value="all">All Categories</option>
+                      {PRODUCT_CATEGORIES.map(category => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Price Range Filter */}
+                  <div className="filter-group">
+                    <label className="filter-label">Price Range:</label>
+                    <div className="price-range-inputs">
+                      <input
+                        type="number"
+                        value={priceRange.min}
+                        onChange={(e) => handlePriceRangeChange('min', e.target.value)}
+                        placeholder="Min $"
+                        className="price-input"
+                        min="0"
+                        step="0.01"
+                        disabled={loading}
+                      />
+                      <span className="price-separator">-</span>
+                      <input
+                        type="number"
+                        value={priceRange.max}
+                        onChange={(e) => handlePriceRangeChange('max', e.target.value)}
+                        placeholder="Max $"
+                        className="price-input"
+                        min="0"
+                        step="0.01"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Stock Status Filter */}
+                  <div className="filter-group">
+                    <label className="filter-label">Stock Status:</label>
+                    <div className="stock-filter-options">
+                      <label className="stock-option">
+                        <input
+                          type="radio"
+                          name="stock-filter"
+                          value="all"
+                          checked={stockFilter === 'all'}
+                          onChange={(e) => handleStockFilterChange(e.target.value)}
+                          disabled={loading}
+                        />
+                        All
+                      </label>
+                      <label className="stock-option">
+                        <input
+                          type="radio"
+                          name="stock-filter"
+                          value="in_stock"
+                          checked={stockFilter === 'in_stock'}
+                          onChange={(e) => handleStockFilterChange(e.target.value)}
+                          disabled={loading}
+                        />
+                        In Stock
+                      </label>
+                      <label className="stock-option">
+                        <input
+                          type="radio"
+                          name="stock-filter"
+                          value="low_stock"
+                          checked={stockFilter === 'low_stock'}
+                          onChange={(e) => handleStockFilterChange(e.target.value)}
+                          disabled={loading}
+                        />
+                        Low Stock
+                      </label>
+                      <label className="stock-option">
+                        <input
+                          type="radio"
+                          name="stock-filter"
+                          value="out_of_stock"
+                          checked={stockFilter === 'out_of_stock'}
+                          onChange={(e) => handleStockFilterChange(e.target.value)}
+                          disabled={loading}
+                        />
+                        Out of Stock
+                      </label>
+                    </div>
+                  </div>
+                </div>
                 
                 {hasActiveFilters && (
                   <div className="active-filters">
@@ -146,7 +337,7 @@ const ProductList = ({
                       onClick={handleClearAllFilters}
                       disabled={loading}
                     >
-                      Clear all
+                      Clear all filters
                     </Button>
                   </div>
                 )}
@@ -159,7 +350,7 @@ const ProductList = ({
                 <select
                   id="sort-select"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => handleSortChange(e.target.value)}
                   className="sort-select"
                   disabled={loading}
                 >
@@ -201,13 +392,13 @@ const ProductList = ({
 
       {/* Product Grid */}
       <ProductGrid
-        products={sortedProducts}
+        products={filteredAndSortedProducts}
         loading={loading}
         onEdit={onEdit}
         onDelete={onDelete}
         onView={onView}
         emptyMessage={
-          hasActiveFilters ? "No products match your search" : "No products found"
+          hasActiveFilters ? "No products match your filters" : "No products found"
         }
         emptyDescription={
           hasActiveFilters 

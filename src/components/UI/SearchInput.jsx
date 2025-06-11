@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useDebounce } from '../../hooks';
 import './SearchInput.css';
 
-const SearchInput = ({ 
+const SearchInput = React.memo(({ 
   value = '',
   onChange,
   onClear,
@@ -31,9 +31,9 @@ const SearchInput = ({
     setInputValue(value);
   }, [value]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     setInputValue(e.target.value);
-  };
+  }, []);
 
   const handleClear = useCallback(() => {
     setInputValue('');
@@ -90,6 +90,7 @@ const SearchInput = ({
           className={`search-input ${hasValue ? 'has-value' : ''}`}
           autoComplete="off"
           spellCheck="false"
+          aria-label={placeholder}
         />
         
         {hasValue && (
@@ -130,7 +131,10 @@ const SearchInput = ({
       )}
     </div>
   );
-};
+});
+
+// Add display name for better debugging
+SearchInput.displayName = 'SearchInput';
 
 SearchInput.propTypes = {
   value: PropTypes.string,

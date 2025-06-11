@@ -12,7 +12,7 @@ import {
 } from '../../utils';
 import './ProductCard.css';
 
-const ProductCard = ({ 
+const ProductCard = React.memo(({ 
   product, 
   onEdit, 
   onDelete, 
@@ -26,6 +26,19 @@ const ProductCard = ({
   const handleImageError = (e) => {
     e.target.src = FALLBACK_IMAGE;
   };
+
+  // Memoize button handlers to prevent unnecessary re-renders
+  const handleView = React.useCallback(() => {
+    onView?.(product);
+  }, [onView, product]);
+
+  const handleEdit = React.useCallback(() => {
+    onEdit?.(product);
+  }, [onEdit, product]);
+
+  const handleDelete = React.useCallback(() => {
+    onDelete?.(product);
+  }, [onDelete, product]);
 
   return (
     <Card className="product-card" hover>
@@ -82,7 +95,7 @@ const ProductCard = ({
           <Button 
             variant="ghost" 
             size="small"
-            onClick={() => onView?.(product)}
+            onClick={handleView}
             aria-label={`View ${product.name}`}
           >
             View
@@ -90,7 +103,7 @@ const ProductCard = ({
           <Button 
             variant="outline" 
             size="small"
-            onClick={() => onEdit?.(product)}
+            onClick={handleEdit}
             aria-label={`Edit ${product.name}`}
           >
             Edit
@@ -98,7 +111,7 @@ const ProductCard = ({
           <Button 
             variant="danger" 
             size="small"
-            onClick={() => onDelete?.(product)}
+            onClick={handleDelete}
             aria-label={`Delete ${product.name}`}
           >
             Delete
@@ -107,7 +120,10 @@ const ProductCard = ({
       )}
     </Card>
   );
-};
+});
+
+// Add display name for better debugging
+ProductCard.displayName = 'ProductCard';
 
 ProductCard.propTypes = {
   product: PropTypes.shape({

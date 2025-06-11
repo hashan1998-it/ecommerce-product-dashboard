@@ -4,7 +4,7 @@ import ProductCard from './ProductCard';
 import { ProductListPropTypes } from '../../utils';
 import './ProductGrid.css';
 
-const ProductGrid = ({ 
+const ProductGrid = React.memo(({ 
   products, 
   loading = false, 
   onEdit, 
@@ -13,12 +13,25 @@ const ProductGrid = ({
   emptyMessage = "No products found",
   emptyDescription = "Try adjusting your search or filters to find what you're looking for."
 }) => {
+  // Memoize handlers to prevent unnecessary re-renders of ProductCard
+  const handleEdit = React.useCallback((product) => {
+    onEdit?.(product);
+  }, [onEdit]);
+
+  const handleDelete = React.useCallback((product) => {
+    onDelete?.(product);
+  }, [onDelete]);
+
+  const handleView = React.useCallback((product) => {
+    onView?.(product);
+  }, [onView]);
+
   if (loading) {
     return (
       <div className="product-grid-container">
         <div className="product-grid">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="product-card-skeleton">
+            <div key={`skeleton-${index}`} className="product-card-skeleton">
               <div className="skeleton-image"></div>
               <div className="skeleton-content">
                 <div className="skeleton-line skeleton-title"></div>
@@ -57,15 +70,18 @@ const ProductGrid = ({
           <ProductCard
             key={product.id}
             product={product}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onView={onView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onView={handleView}
           />
         ))}
       </div>
     </div>
   );
-};
+});
+
+// Add display name for better debugging
+ProductGrid.displayName = 'ProductGrid';
 
 ProductGrid.propTypes = {
   products: ProductListPropTypes,
